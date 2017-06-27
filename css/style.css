@@ -1,0 +1,113 @@
+body {
+    background-color: #1f1f1f;
+    font: 17px sans-serif;
+    fill: white;
+    color: white;
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+path {
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+#company {
+    margin: 25px;
+}
+
+.btn {
+    background-color: #447938;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    border-radius: 4px;
+    margin: 1%;
+    width: 30%;
+    font-family: cursive;
+}
+
+.btn:hover {
+    cursor: pointer;
+}
+
+.companyBar:hover {
+    fill: #04a8de;
+}
+
+.choose {
+    background-color: #0168b7;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    border-radius: 4px;
+    margin: 2% 1%;
+    width: 90%;
+    font-family: cursive;
+}
+
+.choose:hover {
+    background-color: #0386eb;
+}
+
+#mainframe .forIcon {
+    text-align: left;
+    display: inline-block;
+}
+
+#mainframe>.img_wrapper {
+    display: inline-block;
+    text-align: center;
+}
+
+img {
+    width: 160px;
+    height: 160px;
+    border: 3px #d5d5d5 solid;
+    border-radius: 2px;
+    margin: 20px 12px 4px 12px;
+    opacity: .5;
+}
+
+img:hover {
+    border: 3px #ac00fc solid;
+    opacity: 1;
+    transition: all .3s ease;
+    cursor: pointer;
+}
+
+#nanjolno,
+#hikasa {
+    width: 80px;
+    height: 80px;
+    top: 520px;
+    opacity: 1;
+}
+
+#hikasa {
+    left: 120px;
+}
+
+#nanjolno:hover,
+#hikasa:hover {
+    border: 3px #30d7f7 solid;
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    top: 0;
+    left: 0;
+    transition: all .3s ease-in-out;
+    opacity: 1;
+}
