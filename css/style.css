@@ -42,8 +42,24 @@ path {
     cursor: pointer;
 }
 
+.btn2 {
+    background-color: #447938;
+    border: none;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    border-radius: 4px;
+    margin: 1%;
+    width: 20%;
+    font-family: cursive;
+}
+
+.btn2:hover {
+    cursor: pointer;
+}
+
 .companyBar:hover {
-    fill: #04a8de;
+    fill: #cc03f7;
 }
 
 .choose {

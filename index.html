@@ -10,6 +10,7 @@
         <script src="js/bangumi.js"></script>
         <script src="js/company.js"></script>
         <script src="js/profile.js"></script>
+        <script src="js/pre10.js"></script>
         <script>
             function setAll() {
                 var target = document.getElementById('mainframe');
@@ -46,6 +47,20 @@
                     });
                 });
             }
+
+            function set10() {
+                var target = document.getElementById('mainframe');
+                target.className = '';
+                target.innerHTML =
+                    '<h2>出演數排行 -- 各年度前10名</h2>' +
+                    '<input type="button" value="2013" onclick="loadTen(2013);" class="btn2" id="btn22013">' +
+                    '<input type="button" value="2014" onclick="loadTen(2014);" class="btn2" id="btn22014">' +
+                    '<input type="button" value="2015" onclick="loadTen(2015);" class="btn2" id="btn22015">' +
+                    '<input type="button" value="2016" onclick="loadTen(2016);" class="btn2" id="btn22016">' +
+                    '<div id="company">' +
+                    '</div>';
+                loadTen(2013);
+            }
         </script>
     </head>
 
@@ -56,6 +71,7 @@
             <input type="button" value="作品總數趨勢" onclick="setAll()" class="choose">
             <input type="button" value="聲優事務所出演數排行" onclick="setCompany()" class="choose">
             <input type="button" value="個人資料統計" onclick="setIcon()" class="choose">
+            <input type="button" value="年度排名" onclick="set10()" class="choose">
             <iframe width="90%" src="https://www.youtube.com/embed/aR_r-MqEwXo?autoplay=1" style="margin: 20px 5%;" frameborder="0" allowfullscreen></iframe><br>
             <a href="https://twitter.com/nanjolno" target="_blank"><img src="img/nanjo.png" id="nanjolno" /></a>
             <a href="http://blog.livedoor.jp/hiyonikki/" target="_blank"><img src="img/hikasa.jpg" id="hikasa" /></a>

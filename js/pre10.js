@@ -1,4 +1,14 @@
-function loadCompany(year) {
+function loadTen(year) {
+    var target = document.getElementById('mainframe');
+    target.className = '';
+    target.innerHTML =
+        '<h2>出演數排行 -- 各年度前10名</h2>' +
+        '<input type="button" value="2013" onclick="loadTen(2013);" class="btn2" id="btn22013">' +
+        '<input type="button" value="2014" onclick="loadTen(2014);" class="btn2" id="btn22014">' +
+        '<input type="button" value="2015" onclick="loadTen(2015);" class="btn2" id="btn22015">' +
+        '<input type="button" value="2016" onclick="loadTen(2016);" class="btn2" id="btn22016">' +
+        '<div id="company">' +
+        '</div>';
     d3.selectAll('.btn')
         .style("background-color", "#447938")
         .on('mouseover', function(d) {
@@ -15,10 +25,10 @@ function loadCompany(year) {
     d3.select('#btn' + year)
         .style("background-color", "#6bbb5a");
 
-    d3.csv("csv/agency-" + year + ".csv", function(error, data) {
+    d3.csv("csv/" + year + ".csv", function(error, data) {
         var i = 0;
         data.forEach(function(d) {
-            d.amt = +d.amt;
+            d.amt = +d.amount;
             d.x = ++i;
         });
 
@@ -38,6 +48,7 @@ function loadCompany(year) {
 
         }
 
+
         // EXIT
         s.selectAll('rect').data(data).exit()
             .transition().duration(1000)
@@ -48,7 +59,7 @@ function loadCompany(year) {
         s.selectAll('rect').data(data).transition().duration(1000)
             .attr({
                 'width': function(d) {
-                    return 0.8 * (d.amt / 1800) * s.node().getBoundingClientRect().width;
+                    return 0.8 * (d.amt / 40) * s.node().getBoundingClientRect().width;
                 }
             });
 
@@ -59,7 +70,7 @@ function loadCompany(year) {
             .enter()
             .append('rect')
             .attr({
-                'fill': '#65007a',
+                'fill': '#02769c',
                 'width': 0,
                 'height': 30,
                 'x': 0,
@@ -68,11 +79,17 @@ function loadCompany(year) {
                 },
                 'class': 'companyBar'
             })
+            .attr({
+                'fill': function(d) {
+                    if (d.gender == 'M') return '#02769c';
+                    else return '#c40101';
+                }
+            })
             .transition()
             .duration(1000)
             .attr({
                 'width': function(d) {
-                    return 0.8 * (d.amt / 1800) * s.node().getBoundingClientRect().width;
+                    return 0.8 * (d.amt / 40) * s.node().getBoundingClientRect().width;
                 }
             });
 
@@ -85,7 +102,7 @@ function loadCompany(year) {
                 var num = regex.exec(this.textContent);
                 var i = d3.interpolateRound(parseInt(num[1]), 0);
                 return function(t) {
-                    this.textContent = d.agency + ' - ' + i(t);
+                    this.textContent = d.cv + ' - ' + i(t) + ' (' + d.main + '主役)';
                 };
             }).remove();
         // UPDATE
@@ -96,7 +113,7 @@ function loadCompany(year) {
                 var num = regex.exec(this.textContent);
                 var i = d3.interpolateRound(parseInt(num[1]), d.amt);
                 return function(t) {
-                    this.textContent = d.agency + ' - ' + i(t);
+                    this.textContent = d.cv + ' - ' + i(t) + ' (' + d.main + '主役)';
                 };
             });
 
@@ -120,7 +137,7 @@ function loadCompany(year) {
             .tween('number', function(d) {
                 var i = d3.interpolateRound(0, d.amt);
                 return function(t) {
-                    this.textContent = d.agency + ' - ' + i(t);
+                    this.textContent = d.cv + ' - ' + i(t) + ' (' + d.main + '主役)';
                 };
             });
     });
