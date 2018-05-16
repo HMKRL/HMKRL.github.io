@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>fibonacci</title>
+    </head>
+
+    <body>
+        <script src="wasm.js"></script>
+        <script>
+            const fib_wasm = Module.cwrap('fib');
+        </script>
+        <script src="asmjs.js"></script>
+        <script>
+            const fib_asmjs = Module.cwrap('fib');
+        </script>
+        <script src="main.js"></script>
+        <button onclick="
+                var t0 = performance.now();
+                fib_wasm(42);
+                var t1 = performance.now();
+                document.body.innerHTML += '<br>WASM:\t' + (t1 - t0)
+            ">wasm</button>
+        <button onclick="
+                var t0 = performance.now();
+                fib_asmjs(42);
+                var t1 = performance.now();
+                document.body.innerHTML += '<br>asm.js:\t' + (t1 - t0)
+            ">asmjs</button>
+        <button onclick="
+                var t0 = performance.now();
+                fibJs(42);
+                var t1 = performance.now();
+                document.body.innerHTML += '<br>Js:\t' + (t1 - t0)
+            ">js</button>
+    </body>
+</html>
