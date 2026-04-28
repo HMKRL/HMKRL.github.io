@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扇形孔雀燈 - 進階設定面板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+    /* 加入 flex-shrink-0 保證 Color Picker 不會被擠壓變形 */
+    .color-picker { width: 36px; height: 36px; border: none; cursor: pointer; padding: 0; background: none; border-radius: 4px; flex-shrink: 0;}
+    .tab-active { border-bottom: 2px solid #4f46e5; color: #4f46e5; font-weight: bold; }
+    .tab-inactive { color: #6b7280; }
+    
+    /* Custom Scrollbar for Debug Panel */
+    #debugLog::-webkit-scrollbar { width: 8px; }
+    #debugLog::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+    #debugLog::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+  </style>
+</head>
+<body class="text-gray-800 flex flex-col min-h-screen">
+
+  <!-- ======================== HTML UI ======================== -->
+  <header class="bg-indigo-600 text-white p-6 shadow-md text-center">
+    <h1 class="text-3xl font-bold">🦚孔雀開屏天下太平🦚</h1>
+    <p class="text-sm mt-2 opacity-80">按住控制器上的「Mode」按鍵並接上 USB 線以進入設定模式</p>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+    
+    <!-- Connection & Debug Header -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>
+        <h2 class="text-xl font-bold text-gray-700">連線狀態</h2>
+        <p id="statusText" class="text-gray-500 text-sm mt-1">尚未連接。點擊右側按鈕授權網頁存取開發板。</p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <label class="flex items-center space-x-2 cursor-pointer bg-gray-100 px-3 py-2 rounded border hover:bg-gray-200 transition">
+          <input type="checkbox" id="debugToggle" onchange="toggleDebug()" class="w-4 h-4 text-indigo-600">
+          <span class="font-medium text-sm text-gray-700">Verbose Debug</span>
+        </label>
+        <button id="connectBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300">
+          連接 USB 裝置
+        </button>
+      </div>
+    </div>
+
+    <!-- Debug Console -->
+    <div id="debugLogContainer" class="bg-gray-900 rounded-xl shadow-md p-4 mb-6 hidden border border-gray-700">
+      <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+        <h3 class="text-gray-300 font-bold text-sm tracking-wider">DEBUG CONSOLE</h3>
+        <button onclick="document.getElementById('debugLog').value=''" class="text-xs text-gray-400 hover:text-white transition">Clear</button>
+      </div>
+      <textarea id="debugLog" readonly class="w-full h-40 bg-gray-900 text-green-400 font-mono text-xs p-2 rounded focus:outline-none resize-none"></textarea>
+    </div>
+
+    <!-- Main Configuration Area -->
+    <div id="configArea" class="bg-white rounded-xl shadow-md overflow-hidden opacity-50 pointer-events-none transition duration-300">
+      
+      <!-- Tabs -->
+      <div class="flex border-b bg-gray-50">
+        <button onclick="switchTab('palette')" id="tab-palette" class="flex-1 py-4 text-center tab-active transition-colors">🎨 調色盤設定 (16色)</button>
+        <button onclick="switchTab('profiles')" id="tab-profiles" class="flex-1 py-4 text-center tab-inactive transition-colors">📂 設定檔規劃 (8組)</button>
+      </div>
+
+      <!-- Palette Content -->
+      <div id="content-palette" class="p-6">
+        <h3 class="text-lg font-semibold mb-4 text-gray-700 border-l-4 border-indigo-500 pl-3">調色盤</h3>
+        <div id="paletteContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Dynamically injected via JS -->
+        </div>
+        <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+          <button onclick="savePalette()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">
+            儲存調色盤至 EEPROM
+          </button>
+        </div>
+      </div>
+
+      <!-- Profiles Content -->
+      <div id="content-profiles" class="p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-4">
+            <h3 class="text-lg font-semibold text-gray-700 border-l-4 border-indigo-500 pl-3">切換與編輯</h3>
+            <select id="profileSelect" class="border-2 border-indigo-200 rounded-lg p-2 font-bold text-indigo-700 bg-indigo-50 outline-none" onchange="loadProfileUI()">
+            </select>
+          </div>
+          <label class="flex items-center space-x-2 cursor-pointer bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
+            <input type="checkbox" id="profileDefToggle" onchange="toggleCurrentProfile()" class="w-5 h-5 text-indigo-600 rounded">
+            <span class="font-bold text-blue-800">啟用此設定檔</span>
+          </label>
+        </div>
+        
+        <div id="profileEditArea" class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-xl border border-gray-200 transition-opacity duration-300">
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">A. 指派燈條至群組</h4>
+            <div id="stripsContainer" class="space-y-3"></div>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">B. 設定群組顏色</h4>
+            <div id="groupColorsContainer" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+          <button onclick="saveCurrentProfile()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">
+            儲存當前設定檔至 EEPROM
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-400 text-center py-4 text-sm">
+    <p>Powered by WebUSB & Arduino Pro Micro (Vendor ID: 0x1B4F)</p>
+  </footer>
+
+  <!-- ======================== JAVASCRIPT ======================== -->
+  <script>
+    // --- 系統常數設定 ---
+    const NUM_STRIPS = 8;
+    const NUM_PALETTE = 16;
+    const NUM_PROFILES = 8;
+    const ARDUINO_VID = 0x1B4F; // SparkFun Pro Micro
+
+    // --- 全域變數 ---
+    let usbDevice = null;
+    let endpointIn = -1;
+    let endpointOut = -1;
+    let isVerbose = false;
+    
+    // 資料模型 (預設值)
+    let palettes = Array(NUM_PALETTE).fill().map(() => ({hex: "000000", name: "None", isDefined: 0}));
+    let profiles = Array(NUM_PROFILES).fill().map(() => ({
+      stripGroups: Array(NUM_STRIPS).fill(0),
+      groupColors: Array(NUM_STRIPS).fill(0),
+      isDefined: 0
+    }));
+
+    // ======================== UI 介面邏輯 ========================
+
+    function switchTab(tab) {
+      document.getElementById('content-palette').classList.toggle('hidden', tab !== 'palette');
+      document.getElementById('content-profiles').classList.toggle('hidden', tab !== 'profiles');
+      
+      document.getElementById('tab-palette').className = `flex-1 py-4 text-center transition-colors ${tab === 'palette' ? 'tab-active' : 'tab-inactive bg-gray-100'}`;
+      document.getElementById('tab-profiles').className = `flex-1 py-4 text-center transition-colors ${tab === 'profiles' ? 'tab-active' : 'tab-inactive bg-gray-100'}`;
+
+      if (tab === 'profiles') {
+        updateProfileColorSelectors();
+        loadProfileUI();
+      }
+    }
+
+    function initUI() {
+      // 1. Initialize Palette (還原為卡片式雙層佈局)
+      const pCont = document.getElementById('paletteContainer');
+      pCont.innerHTML = '';
+      for (let i = 0; i < NUM_PALETTE; i++) {
+        pCont.innerHTML += `
+          <div class="flex flex-col space-y-2 bg-white p-3 rounded-lg shadow-sm border border-gray-200 transition" id="palRow${i}">
+            <div class="flex justify-between items-center">
+              <span class="font-mono font-bold text-gray-500 bg-gray-100 px-2 rounded">ID: ${i}</span>
+              <label class="flex items-center space-x-1 cursor-pointer">
+                <span class="text-xs text-gray-500 font-medium">啟用</span>
+                <input type="checkbox" id="palDef${i}" onchange="togglePalette(${i})" class="w-4 h-4 text-indigo-600 rounded">
+              </label>
+            </div>
+            <div class="flex items-center space-x-2 mt-2">
+              <input type="color" id="palColor${i}" value="#ff0000" class="color-picker shadow-sm flex-shrink-0" onchange="previewPaletteColor(this.value)">
+              <input type="text" id="palName${i}" maxlength="7" placeholder="Name" class="border rounded p-1 flex-1 min-w-0 uppercase text-sm font-semibold text-gray-700" value="COLOR${i}">
+            </div>
+          </div>
+        `;
+      }
+      
+      // 2. Initialize Profile Dropdown
+      const profSel = document.getElementById('profileSelect');
+      profSel.innerHTML = Array.from({length: NUM_PROFILES}, (_, i) => `<option value="${i}">設定檔 ${i}</option>`).join('');
+
+      // 3. Initialize Strip & Group Dropdowns
+      const sCont = document.getElementById('stripsContainer');
+      const gcCont = document.getElementById('groupColorsContainer');
+      sCont.innerHTML = ''; gcCont.innerHTML = '';
+      
+      for (let i = 0; i < NUM_STRIPS; i++) {
+        sCont.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2 rounded border border-gray-100 text-sm">
+            <label class="font-medium text-gray-600">實體燈條 ${i}</label>
+            <select id="stripGroup${i}" class="border border-gray-300 rounded p-1 w-32 bg-gray-50 focus:border-indigo-500 outline-none">
+              ${Array.from({length: NUM_STRIPS}, (_, j) => `<option value="${j}">群組 ${j}</option>`).join('')}
+            </select>
+          </div>`;
+          
+        gcCont.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2 rounded border border-gray-100 text-sm">
+            <label class="font-medium text-gray-600">邏輯群組 ${i}</label>
+            <select id="groupColor${i}" class="border border-indigo-200 rounded p-1 w-32 profile-color-select bg-indigo-50 focus:border-indigo-500 font-medium outline-none"></select>
+          </div>`;
+      }
+    }
+
+    function togglePalette(i) {
+      palettes[i].isDefined = document.getElementById(`palDef${i}`).checked ? 1 : 0;
+      const row = document.getElementById(`palRow${i}`);
+      if (!palettes[i].isDefined) {
+        row.classList.add('opacity-40', 'bg-gray-50');
+      } else {
+        row.classList.remove('opacity-40', 'bg-gray-50');
+      }
+      document.getElementById(`palColor${i}`).disabled = !palettes[i].isDefined;
+      document.getElementById(`palName${i}`).disabled = !palettes[i].isDefined;
+      updateProfileColorSelectors();
+    }
+
+    function toggleCurrentProfile() {
+      const pIdx = document.getElementById('profileSelect').value;
+      profiles[pIdx].isDefined = document.getElementById('profileDefToggle').checked ? 1 : 0;
+      
+      const editArea = document.getElementById('profileEditArea');
+      if (profiles[pIdx].isDefined) {
+        editArea.style.opacity = '1';
+        editArea.style.pointerEvents = 'auto';
+        editArea.classList.remove('grayscale');
+      } else {
+        editArea.style.opacity = '0.5';
+        editArea.style.pointerEvents = 'none';
+        editArea.classList.add('grayscale');
+      }
+      updateProfileSelectLabels();
+    }
+
+    function updateProfileSelectLabels() {
+      const sel = document.getElementById('profileSelect');
+      for(let i=0; i<NUM_PROFILES; i++) {
+         sel.options[i].text = profiles[i].isDefined ? `設定檔 ${i}` : `設定檔 ${i} (未啟用)`;
+      }
+    }
+
+    function updateProfileColorSelectors() {
+      const selects = document.querySelectorAll('.profile-color-select');
+      const options = palettes.map((p, i) => p.isDefined ? `<option value="${i}">${i}: ${p.name || 'Color'}</option>` : '').join('');
+      
+      selects.forEach(s => {
+        const currentVal = s.value;
+        s.innerHTML = options || '<option value="0" disabled>無可用顏色 (請至調色盤設定)</option>';
+        if (currentVal && palettes[currentVal] && palettes[currentVal].isDefined) {
+          s.value = currentVal;
+        }
+      });
+    }
+
+    function loadProfileUI() {
+      const pIdx = document.getElementById('profileSelect').value;
+      const prof = profiles[pIdx];
+      
+      document.getElementById('profileDefToggle').checked = prof.isDefined === 1;
+      toggleCurrentProfile();
+
+      for (let i = 0; i < NUM_STRIPS; i++) {
+        document.getElementById(`stripGroup${i}`).value = prof.stripGroups[i];
+        document.getElementById(`groupColor${i}`).value = prof.groupColors[i];
+      }
+      sendCmd(`SET_PRF:${pIdx}\n`); // 即時預覽此設定檔
+    }
+
+    // --- Debug 顯示邏輯 ---
+    function logDebug(msg, type="INFO") {
+      if (!isVerbose) return;
+      const logBox = document.getElementById('debugLog');
+      if (logBox) {
+        const time = new Date().toISOString().substring(11, 23);
+        logBox.value += `[${time}][${type}] ${msg}\n`;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+      console.log(`[${type}]`, msg);
+    }
+
+    function toggleDebug() {
+      isVerbose = document.getElementById('debugToggle').checked;
+      document.getElementById('debugLogContainer').classList.toggle('hidden', !isVerbose);
+      sendCmd(`SET_DBG:${isVerbose ? 1 : 0}\n`);
+    }
+
+    // ======================== WebUSB 通訊邏輯 ========================
+
+    async function connectUSB() {
+      try {
+        logDebug("Requesting USB device...", "SYS");
+        usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: ARDUINO_VID }] });
+        logDebug(`Device selected: ${usbDevice.productName}`, "SYS");
+        
+        await usbDevice.open();
+        if (usbDevice.configuration === null) {
+          await usbDevice.selectConfiguration(1);
+        }
+
+        let interfaceNum = -1;
+        
+        // 【關鍵邏輯】：嚴謹尋找具備 Bulk 資料傳輸端點的 Interface
+        for (const conf of usbDevice.configuration.interfaces) {
+          for (const alt of conf.alternates) {
+            if (alt.interfaceClass === 0xFF) { // Vendor Specific
+              let epIn = alt.endpoints.find(e => e.direction === 'in' && e.type === 'bulk');
+              let epOut = alt.endpoints.find(e => e.direction === 'out' && e.type === 'bulk');
+              
+              if (epIn && epOut) {
+                interfaceNum = conf.interfaceNumber;
+                endpointIn = epIn.endpointNumber;
+                endpointOut = epOut.endpointNumber;
+                break;
+              }
+            }
+          }
+          if (interfaceNum !== -1) break;
+        }
+
+        if (interfaceNum === -1) {
+          throw new Error("找不到具備 Bulk 端點的 WebUSB 介面！請確認硬體是否支援或處於設定模式。");
+        }
+
+        await usbDevice.claimInterface(interfaceNum);
+        logDebug(`Interface ${interfaceNum} claimed. EP_IN:${endpointIn}, EP_OUT:${endpointOut}`, "SYS");
+
+        // 【關鍵邏輯】：發送 DTR (Data Terminal Ready)
+        // 這是讓 Arduino WebUSBSerial() 回傳 True 並解除 while 卡死的關鍵
+        await usbDevice.controlTransferOut({
+            requestType: 'class',
+            recipient: 'interface',
+            request: 0x22, // SET_CONTROL_LINE_STATE
+            value: 0x01,   // Bit 0 = DTR
+            index: interfaceNum
+        });
+        logDebug("DTR signal asserted.", "SYS");
+
+        // 更新 UI
+        document.getElementById('statusText').innerHTML = `<span class="text-green-600 font-bold">✅ 已連接: ${usbDevice.productName}</span>`;
+        document.getElementById('connectBtn').textContent = "重新連線";
+        document.getElementById('connectBtn').classList.replace('bg-indigo-500', 'bg-green-500');
+        document.getElementById('connectBtn').classList.replace('hover:bg-indigo-600', 'hover:bg-green-600');
+        document.getElementById('configArea').classList.remove('opacity-50', 'pointer-events-none');
+
+        // 啟動接收迴圈與請求同步資料
+        readLoop();
+        await sendCmd("GET_ALL\n");
+        
+      } catch (err) {
+        console.error(err);
+        logDebug(`Connection error: ${err.message}`, "ERR");
+        document.getElementById('statusText').innerHTML = `<span class="text-red-500 font-bold">❌ 連線失敗: ${err.message}</span>`;
+      }
+    }
+
+    async function sendCmd(str) {
+      if (!usbDevice) return;
+      logDebug(str.trim(), "TX");
+      try {
+        await usbDevice.transferOut(endpointOut, new TextEncoder().encode(str));
+      } catch(err) {
+        logDebug(`Transfer out error: ${err}`, "ERR");
+      }
+    }
+
+    async function readLoop() {
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        logDebug("Starting read loop...", "SYS");
+        while (usbDevice && usbDevice.opened) {
+          const result = await usbDevice.transferIn(endpointIn, 64);
+          buffer += decoder.decode(result.data);
+          
+          let nIdx;
+          while ((nIdx = buffer.indexOf('\n')) !== -1) {
+            parseIncomingData(buffer.substring(0, nIdx));
+            buffer = buffer.substring(nIdx + 1);
+          }
+        }
+      } catch (err) { 
+        logDebug(`USB Read stopped: ${err.message}`, "SYS");
+      }
+    }
+
+    function parseIncomingData(data) {
+      data = data.trim();
+      if (!data) return;
+      
+      if (data.startsWith("DBG:")) {
+        logDebug(data.substring(4), "MCU");
+        return;
+      }
+      
+      logDebug(data, "RX");
+
+      if (data.startsWith("PAL:")) {
+        // 解析調色盤
+        const items = data.substring(4).split('|');
+        items.forEach((item, i) => {
+          if (i >= NUM_PALETTE) return;
+          const [hex, name, isDef] = item.split(',');
+          if (hex) {
+            palettes[i] = { 
+              hex: hex, 
+              name: name ? name.replace(/[^a-zA-Z0-9]/g, '') : '', 
+              isDefined: parseInt(isDef || 0) 
+            }; 
+            
+            const colorEl = document.getElementById(`palColor${i}`);
+            if(colorEl) {
+              colorEl.value = `#${hex}`;
+              document.getElementById(`palName${i}`).value = palettes[i].name;
+              document.getElementById(`palDef${i}`).checked = palettes[i].isDefined === 1;
+              togglePalette(i); // Update visuals
+            }
+          }
+        });
+        updateProfileColorSelectors();
+      } 
+      else if (data.startsWith("PRF:")) {
+        // 解析設定檔 PRF:pIdx:isDef:groups|colors
+        const parts = data.substring(4).split(':');
+        if (parts.length >= 3) {
+          const pIdx = parseInt(parts[0]);
+          const isDef = parseInt(parts[1]);
+          if(parts[2]) {
+            const [grpStr, colStr] = parts[2].split('|');
+            profiles[pIdx].isDefined = isDef;
+            profiles[pIdx].stripGroups = grpStr.split(',').map(Number);
+            profiles[pIdx].groupColors = colStr.split(',').map(Number);
+            
+            updateProfileSelectLabels();
+            if(pIdx.toString() === document.getElementById('profileSelect').value) {
+              loadProfileUI(); // Refresh UI if it's the active view
+            }
+          }
+        }
+      }
+      else if (data.startsWith("OK:")) {
+        alert(data === "OK:SAVED" ? "所有的設定已成功寫入晶片 EEPROM！" : "✅ 暫存成功");
+      }
+    }
+
+    // ======================== 資料儲存與預覽動作 ========================
+
+    async function previewPaletteColor(hex) {
+      await sendCmd(`PRV_PAL:${hex.substring(1).toUpperCase()}\n`);
+    }
+
+    async function savePalette() {
+      // 避免 USB 緩衝區溢位，將 16 個顏色分批傳送
+      for (let i = 0; i < NUM_PALETTE; i++) {
+        let hex = document.getElementById(`palColor${i}`).value.substring(1).toUpperCase();
+        let name = document.getElementById(`palName${i}`).value.trim().substring(0, 7).toUpperCase() || `C${i}`;
+        let isDef = palettes[i].isDefined ? 1 : 0;
+        
+        await sendCmd(`SAV_PAL:${i}:${hex},${name},${isDef}\n`);
+        await new Promise(r => setTimeout(r, 20)); // 給予晶片 20ms 的處理時間
+      }
+      
+      // 傳送完畢後要求開發板正式寫入 EEPROM
+      await sendCmd("COMMIT_EEPROM\n");
+      updateProfileColorSelectors();
+    }
+
+    async function saveCurrentProfile() {
+      const pIdx = document.getElementById('profileSelect').value;
+      let groups = [], colors = [];
+      
+      for (let i = 0; i < NUM_STRIPS; i++) {
+        groups.push(document.getElementById(`stripGroup${i}`).value);
+        colors.push(document.getElementById(`groupColor${i}`).value);
+      }
+      
+      profiles[pIdx].stripGroups = groups;
+      profiles[pIdx].groupColors = colors;
+      let isDef = profiles[pIdx].isDefined ? 1 : 0;
+      
+      await sendCmd(`SAV_PRF:${pIdx}:${isDef}:${groups.join(',')}|${colors.join(',')}\n`);
+      await new Promise(r => setTimeout(r, 20));
+      await sendCmd("COMMIT_EEPROM\n");
+    }
+
+    // 綁定事件
+    document.getElementById('connectBtn').addEventListener('click', connectUSB);
+    
+    // 啟動初始化
+    initUI();
+  </script>
+</body>
+</html>
