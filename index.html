@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>孔雀設定面板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="text-gray-800 flex flex-col min-h-screen">
+
+  <!-- ======================== HTML UI ======================== -->
+  <header class="bg-indigo-600 text-white p-6 shadow-md text-center">
+    <h1 class="text-3xl font-bold">🦚孔雀開屏天下太平🦚</h1>
+    <p class="text-sm mt-2 opacity-80">按住控制器上的「Mode」按鍵並接上 USB 線以進入設定模式</p>
+  </header>
+
+  <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+
+    <!-- Connection & Debug Header -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>
+        <h2 class="text-xl font-bold text-gray-700">連線狀態</h2>
+        <p id="statusText" class="text-gray-500 text-sm mt-1">尚未連接。點擊右側按鈕授權WebUSB 連接開發板。</p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <label
+          class="flex items-center space-x-2 cursor-pointer bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
+          <input type="checkbox" id="debugToggle" onchange="toggleDebug()" class="w-5 h-5 text-indigo-600 rounded"
+            checked>
+          <span class="font-bold text-blue-800">Debug</span>
+        </label>
+        <button id="connectBtn"
+          class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition transform hover:scale-105 active:scale-95">
+          連接裝置
+        </button>
+      </div>
+    </div>
+
+    <!-- Debug Console -->
+    <div id="debugLogContainer" class="bg-gray-900 rounded-xl shadow-md p-4">
+      <h3 class="text-gray-300 font-semibold mb-2 flex justify-between">
+        <span>Logs</span>
+        <button onclick="document.getElementById('debugLog').value=''"
+          class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition text-gray-300">Clear</button>
+      </h3>
+      <textarea id="debugLog" readonly
+        class="w-full h-32 bg-black text-green-400 font-mono text-xs p-2 rounded outline-none resize-y"></textarea>
+    </div>
+
+    <!-- Main Configuration Area -->
+    <div id="configArea"
+      class="bg-white rounded-xl shadow-md overflow-hidden opacity-50 pointer-events-none transition duration-300">
+
+      <!-- Tabs -->
+      <div class="flex border-b bg-gray-50">
+        <button onclick="switchTab('palette')" id="tab-palette"
+          class="flex-1 py-4 text-center tab-active transition-colors">調色盤 (16色)</button>
+        <button onclick="switchTab('profiles')" id="tab-profiles"
+          class="flex-1 py-4 text-center tab-inactive transition-colors">設定檔 (8組)</button>
+        <button onclick="switchTab('misc')" id="tab-misc"
+          class="flex-1 py-4 text-center tab-inactive transition-colors">雜項設定</button>
+      </div>
+
+      <!-- Palette Content -->
+      <div id="content-palette" class="p-6">
+        <h3 class="text-lg font-semibold mb-4 text-gray-700 border-l-4 border-indigo-500 pl-3">調色盤</h3>
+        <div id="paletteContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Dynamically injected via JS -->
+        </div>
+        <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+          <button onclick="savePalette()"
+            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">
+            儲存調色盤至 EEPROM
+          </button>
+        </div>
+      </div>
+
+      <!-- Profiles Content -->
+      <div id="content-profiles" class="p-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-4">
+            <h3 class="text-lg font-semibold text-gray-700 border-l-4 border-indigo-500 pl-3">編輯</h3>
+            <select id="profileSelect"
+              class="border-2 border-indigo-200 rounded-lg p-2 font-bold text-indigo-700 bg-indigo-50 outline-none"
+              onchange="loadProfileUI()">
+            </select>
+            <input type="text" id="profileNameInput" maxlength="16" placeholder="設定檔名稱"
+              class="border-2 border-indigo-200 rounded-lg p-2 text-indigo-700 outline-none w-48"
+              oninput="updateProfileName(this.value)">
+          </div>
+          <label
+            class="flex items-center space-x-2 cursor-pointer bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
+            <input type="checkbox" id="profileDefToggle" onchange="toggleCurrentProfile()"
+              class="w-5 h-5 text-indigo-600 rounded">
+            <span class="font-bold text-blue-800">啟用</span>
+          </label>
+        </div>
+
+        <!-- Fan Visual Preview -->
+        <div class="mb-6 flex justify-center bg-gray-100 rounded-xl p-4 border border-gray-200">
+          <div class="relative w-80 h-48 flex justify-center items-end overflow-hidden">
+            <div id="fanPreviewContainer" class="relative w-full h-full flex justify-center items-end">
+              <!-- JS generates strips here -->
+            </div>
+            <!-- Base hub -->
+            <div class="absolute -bottom-2 w-16 h-8 bg-gray-600 rounded-full shadow-inner z-15"></div>
+          </div>
+        </div>
+
+        <div id="profileEditArea"
+          class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-xl border border-gray-200 transition-opacity duration-300">
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">A. 指派燈條至群組</h4>
+            <div id="stripsContainer" class="space-y-3"></div>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">B. 設定群組顏色</h4>
+            <div id="groupColorsContainer" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+          <button onclick="saveCurrentProfile()"
+            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">
+            儲存目前設定檔至 EEPROM
+          </button>
+        </div>
+      </div>
+
+      <!-- Misc Content -->
+      <div id="content-misc" class="p-6 hidden">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700 border-l-4 border-indigo-500 pl-3">雜項設定</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
+          <!-- Strobe Settings -->
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">爆閃設定 (Strobe)</h4>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Frequency (Hz): <span id="valStrobeFreq"
+                  class="text-indigo-600 font-bold">20</span></label>
+              <input type="range" id="strobeFreq" min="1" max="30" value="20"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                oninput="document.getElementById('valStrobeFreq').innerText = this.value">
+            </div>
+
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Duty Cycle (%): <span id="valStrobeDuty"
+                  class="text-indigo-600 font-bold">60</span></label>
+              <input type="range" id="strobeDuty" min="1" max="99" value="60"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                oninput="document.getElementById('valStrobeDuty').innerText = this.value">
+            </div>
+
+            <button onmousedown="previewStrobe(1)" onmouseup="previewStrobe(0)" onmouseleave="previewStrobe(0)"
+              ontouchstart="previewStrobe(1)" ontouchend="previewStrobe(0)"
+              class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-4 rounded shadow transition select-none">
+              按住預覽閃爍效果
+            </button>
+            <p class="text-xs text-gray-500 mt-2 text-center">放開按鈕即停止預覽</p>
+          </div>
+
+          <!-- Default Profile -->
+          <div>
+            <h4 class="font-bold text-gray-700 mb-4 pb-2 border-b">系統預設值</h4>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">預設開機設定檔</label>
+              <select id="defaultProfileSelect"
+                class="w-full border-2 border-indigo-200 rounded-lg p-2 font-bold text-indigo-700 bg-white outline-none"
+                onchange="miscConfig.defProfile = this.value">
+                <!-- Injected via JS -->
+              </select>
+              <p class="text-xs text-gray-500 mt-2">提示：在一般模式下使用 Prev/Next 按鈕停留超過 3 秒，也會自動記錄為預設設定檔。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+          <button onclick="saveMisc()"
+            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg shadow-md transition">
+            儲存雜項設定至 EEPROM
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-400 text-center py-4 text-sm">
+    <p>Powered by WebUSB & Arduino Pro Micro (Vendor ID: 0x1B4F)</p>
+  </footer>
+
+  <!-- ======================== JAVASCRIPT ======================== -->
+  <script src="script.js"></script>
+</body>
+
+</html>
