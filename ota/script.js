@@ -18,7 +18,7 @@ let profiles = Array(NUM_PROFILES).fill().map((_, i) => ({
   groupColors: Array(NUM_STRIPS).fill(0),
   isDefined: 0
 }));
-let miscConfig = { freq: 20, duty: 60, defProfile: 0 };
+let miscConfig = { freq: 20, duty: 60, defProfile: 0, defPalette: 0, useProfile: 1 };
 
 // ======================== UI Logic ========================
 
@@ -160,7 +160,7 @@ function updateProfileName(val) {
 function updateProfileSelectLabels() {
   const sel = document.getElementById('profileSelect');
   const defSel = document.getElementById('defaultProfileSelect');
-  
+
   if (defSel) defSel.innerHTML = '';
 
   for (let i = 0; i < NUM_PROFILES; i++) {
@@ -170,7 +170,7 @@ function updateProfileSelectLabels() {
       defSel.options.add(new Option(`${i}: ` + text, i));
     }
   }
-  
+
   if (defSel) defSel.value = miscConfig.defProfile;
 }
 
@@ -179,8 +179,17 @@ function updateMiscUI() {
   document.getElementById('valStrobeFreq').innerText = miscConfig.freq;
   document.getElementById('strobeDuty').value = miscConfig.duty;
   document.getElementById('valStrobeDuty').innerText = miscConfig.duty;
+  
+  if (document.getElementById('defaultModeSelect')) {
+    document.getElementById('defaultModeSelect').value = miscConfig.useProfile === 1 ? "1" : "0";
+    document.getElementById('defaultProfileWrapper').style.display = miscConfig.useProfile === 1 ? 'block' : 'none';
+    document.getElementById('defaultPaletteWrapper').style.display = miscConfig.useProfile === 1 ? 'none' : 'block';
+  }
   if (document.getElementById('defaultProfileSelect')) {
     document.getElementById('defaultProfileSelect').value = miscConfig.defProfile;
+  }
+  if (document.getElementById('defaultPaletteSelect')) {
+    document.getElementById('defaultPaletteSelect').value = miscConfig.defPalette;
   }
 }
 
@@ -195,6 +204,15 @@ function updateProfileColorSelectors() {
       s.value = currentVal;
     }
   });
+
+  const defPalSel = document.getElementById('defaultPaletteSelect');
+  if (defPalSel) {
+    const currentVal = defPalSel.value;
+    defPalSel.innerHTML = options || '<option value="0" disabled>無可用顏色</option>';
+    if (currentVal && palettes[currentVal] && palettes[currentVal].isDefined) {
+      defPalSel.value = currentVal;
+    }
+  }
 }
 
 function loadProfileUI() {
@@ -361,13 +379,21 @@ function parseIncomingData(data) {
     logDebug(data.substring(4), "MCU");
     return;
   }
-  
+
   if (data.startsWith("MSC:")) {
     const parts = data.substring(4).split(',');
-    if (parts.length >= 3) {
+    if (parts.length >= 5) {
       miscConfig.freq = parseInt(parts[0], 10);
       miscConfig.duty = parseInt(parts[1], 10);
       miscConfig.defProfile = parseInt(parts[2], 10);
+      miscConfig.defPalette = parseInt(parts[3], 10);
+      miscConfig.useProfile = parseInt(parts[4], 10);
+    } else if (parts.length >= 3) {
+      miscConfig.freq = parseInt(parts[0], 10);
+      miscConfig.duty = parseInt(parts[1], 10);
+      miscConfig.defProfile = parseInt(parts[2], 10);
+      miscConfig.defPalette = 0;
+      miscConfig.useProfile = 1;
     }
     updateMiscUI();
     return;
@@ -485,20 +511,48 @@ async function saveMisc() {
   miscConfig.freq = parseInt(document.getElementById('strobeFreq').value, 10);
   miscConfig.duty = parseInt(document.getElementById('strobeDuty').value, 10);
   miscConfig.defProfile = parseInt(document.getElementById('defaultProfileSelect').value, 10);
-  
+  miscConfig.defPalette = parseInt(document.getElementById('defaultPaletteSelect').value, 10);
+  // miscConfig.useProfile is updated via onchange in index.html
+
   if (usbDevice) {
-    await sendCmd(`SAV_MSC:${miscConfig.freq},${miscConfig.duty},${miscConfig.defProfile}\n`);
+    await sendCmd(`SAV_MSC:${miscConfig.freq},${miscConfig.duty},${miscConfig.defProfile},${miscConfig.defPalette},${miscConfig.useProfile}\n`);
     await sendCmd("COMMIT_EEPROM\n");
   }
 }
 
-async function previewStrobe(state) {
+let isStrobePreviewing = false;
+
+async function toggleStrobePreview() {
+  isStrobePreviewing = !isStrobePreviewing;
+  const btn = document.getElementById('strobePreviewBtn');
+
+  if (isStrobePreviewing) {
+    btn.innerHTML = '停止閃爍';
+    btn.classList.replace('bg-yellow-400', 'bg-red-500');
+    btn.classList.replace('hover:bg-yellow-500', 'hover:bg-red-600');
+    btn.classList.replace('text-yellow-900', 'text-white');
+  } else {
+    btn.innerHTML = '預覽閃爍';
+    btn.classList.replace('bg-red-500', 'bg-yellow-400');
+    btn.classList.replace('hover:bg-red-600', 'hover:bg-yellow-500');
+    btn.classList.replace('text-white', 'text-yellow-900');
+  }
+
   if (usbDevice) {
     const f = document.getElementById('strobeFreq').value;
     const d = document.getElementById('strobeDuty').value;
     const p = document.getElementById('defaultProfileSelect').value;
     await sendCmd(`SAV_MSC:${f},${d},${p}\n`);
-    await sendCmd(`PRV_STR:${state}\n`);
+    await sendCmd(`PRV_STR:${isStrobePreviewing ? 1 : 0}\n`);
+  }
+}
+
+async function onStrobeSliderChange() {
+  if (isStrobePreviewing && usbDevice) {
+    const f = document.getElementById('strobeFreq').value;
+    const d = document.getElementById('strobeDuty').value;
+    const p = document.getElementById('defaultProfileSelect').value;
+    await sendCmd(`SAV_MSC:${f},${d},${p}\n`);
   }
 }
 
