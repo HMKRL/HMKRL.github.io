@@ -174,6 +174,52 @@ function updateProfileSelectLabels() {
   if (defSel) defSel.value = miscConfig.defProfile;
 }
 
+async function moveProfileUp() {
+  const pIdx = parseInt(document.getElementById('profileSelect').value, 10);
+  if (pIdx <= 0) return;
+
+  const prevIdx = pIdx - 1;
+  const currentProf = { ...profiles[pIdx] };
+  const prevProf = { ...profiles[prevIdx] };
+
+  profiles[pIdx] = prevProf;
+  profiles[prevIdx] = currentProf;
+
+  if (usbDevice) {
+    const cur = profiles[pIdx];
+    await sendCmd(`SAV_PRF:${pIdx}:${cur.isDefined}:${cur.name}:${cur.stripGroups.join(',')}|${cur.groupColors.join(',')}\n`);
+    const pre = profiles[prevIdx];
+    await sendCmd(`SAV_PRF:${prevIdx}:${pre.isDefined}:${pre.name}:${pre.stripGroups.join(',')}|${pre.groupColors.join(',')}\n`);
+  }
+
+  updateProfileSelectLabels();
+  document.getElementById('profileSelect').value = prevIdx;
+  loadProfileUI();
+}
+
+async function moveProfileDown() {
+  const pIdx = parseInt(document.getElementById('profileSelect').value, 10);
+  if (pIdx >= NUM_PROFILES - 1) return;
+
+  const nextIdx = pIdx + 1;
+  const currentProf = { ...profiles[pIdx] };
+  const nextProf = { ...profiles[nextIdx] };
+
+  profiles[pIdx] = nextProf;
+  profiles[nextIdx] = currentProf;
+
+  if (usbDevice) {
+    const cur = profiles[pIdx];
+    await sendCmd(`SAV_PRF:${pIdx}:${cur.isDefined}:${cur.name}:${cur.stripGroups.join(',')}|${cur.groupColors.join(',')}\n`);
+    const nxt = profiles[nextIdx];
+    await sendCmd(`SAV_PRF:${nextIdx}:${nxt.isDefined}:${nxt.name}:${nxt.stripGroups.join(',')}|${nxt.groupColors.join(',')}\n`);
+  }
+
+  updateProfileSelectLabels();
+  document.getElementById('profileSelect').value = nextIdx;
+  loadProfileUI();
+}
+
 function updateMiscUI() {
   document.getElementById('strobeFreq').value = miscConfig.freq;
   document.getElementById('valStrobeFreq').innerText = miscConfig.freq;

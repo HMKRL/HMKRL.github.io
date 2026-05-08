@@ -90,6 +90,8 @@
             <input type="text" id="profileNameInput" maxlength="16" placeholder="設定檔名稱"
               class="border-2 border-indigo-200 rounded-lg p-2 text-indigo-700 outline-none w-48"
               oninput="updateProfileName(this.value)">
+            <button onclick="moveProfileUp()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-3 py-2 rounded-lg transition" title="向上移動" id="btnMoveUp">↑</button>
+            <button onclick="moveProfileDown()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-3 py-2 rounded-lg transition" title="向下移動" id="btnMoveDown">↓</button>
           </div>
           <label
             class="flex items-center space-x-2 cursor-pointer bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
