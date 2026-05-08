@@ -80,9 +80,9 @@
 
       <!-- Profiles Content -->
       <div id="content-profiles" class="p-6 hidden">
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center space-x-4">
-            <h3 class="text-lg font-semibold text-gray-700 border-l-4 border-indigo-500 pl-3">編輯</h3>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-700 border-l-4 border-indigo-500 pl-3 mr-2">編輯</h3>
             <select id="profileSelect"
               class="border-2 border-indigo-200 rounded-lg p-2 font-bold text-indigo-700 bg-indigo-50 outline-none"
               onchange="loadProfileUI()">
@@ -102,8 +102,8 @@
         </div>
 
         <!-- Fan Visual Preview -->
-        <div class="mb-6 flex justify-center bg-gray-100 rounded-xl p-4 border border-gray-200">
-          <div class="relative w-80 h-48 flex justify-center items-end overflow-hidden">
+        <div class="mb-6 flex justify-center bg-black rounded-xl p-4 border border-gray-800">
+          <div class="relative w-full max-w-[340px] h-56 flex justify-center items-end overflow-hidden">
             <div id="fanPreviewContainer" class="relative w-full h-full flex justify-center items-end">
               <!-- JS generates strips here -->
             </div>
