@@ -18,7 +18,7 @@ let profiles = Array(NUM_PROFILES).fill().map((_, i) => ({
   groupColors: Array(NUM_STRIPS).fill(0),
   isDefined: 0
 }));
-let miscConfig = { freq: 20, duty: 60, defProfile: 0 };
+let miscConfig = { freq: 20, duty: 60, defProfile: 0, defPalette: 0, useProfile: 1 };
 
 // ======================== UI Logic ========================
 
@@ -179,8 +179,17 @@ function updateMiscUI() {
   document.getElementById('valStrobeFreq').innerText = miscConfig.freq;
   document.getElementById('strobeDuty').value = miscConfig.duty;
   document.getElementById('valStrobeDuty').innerText = miscConfig.duty;
+  
+  if (document.getElementById('defaultModeSelect')) {
+    document.getElementById('defaultModeSelect').value = miscConfig.useProfile === 1 ? "1" : "0";
+    document.getElementById('defaultProfileWrapper').style.display = miscConfig.useProfile === 1 ? 'block' : 'none';
+    document.getElementById('defaultPaletteWrapper').style.display = miscConfig.useProfile === 1 ? 'none' : 'block';
+  }
   if (document.getElementById('defaultProfileSelect')) {
     document.getElementById('defaultProfileSelect').value = miscConfig.defProfile;
+  }
+  if (document.getElementById('defaultPaletteSelect')) {
+    document.getElementById('defaultPaletteSelect').value = miscConfig.defPalette;
   }
 }
 
@@ -195,6 +204,15 @@ function updateProfileColorSelectors() {
       s.value = currentVal;
     }
   });
+
+  const defPalSel = document.getElementById('defaultPaletteSelect');
+  if (defPalSel) {
+    const currentVal = defPalSel.value;
+    defPalSel.innerHTML = options || '<option value="0" disabled>無可用顏色</option>';
+    if (currentVal && palettes[currentVal] && palettes[currentVal].isDefined) {
+      defPalSel.value = currentVal;
+    }
+  }
 }
 
 function loadProfileUI() {
@@ -364,10 +382,18 @@ function parseIncomingData(data) {
 
   if (data.startsWith("MSC:")) {
     const parts = data.substring(4).split(',');
-    if (parts.length >= 3) {
+    if (parts.length >= 5) {
       miscConfig.freq = parseInt(parts[0], 10);
       miscConfig.duty = parseInt(parts[1], 10);
       miscConfig.defProfile = parseInt(parts[2], 10);
+      miscConfig.defPalette = parseInt(parts[3], 10);
+      miscConfig.useProfile = parseInt(parts[4], 10);
+    } else if (parts.length >= 3) {
+      miscConfig.freq = parseInt(parts[0], 10);
+      miscConfig.duty = parseInt(parts[1], 10);
+      miscConfig.defProfile = parseInt(parts[2], 10);
+      miscConfig.defPalette = 0;
+      miscConfig.useProfile = 1;
     }
     updateMiscUI();
     return;
@@ -485,9 +511,11 @@ async function saveMisc() {
   miscConfig.freq = parseInt(document.getElementById('strobeFreq').value, 10);
   miscConfig.duty = parseInt(document.getElementById('strobeDuty').value, 10);
   miscConfig.defProfile = parseInt(document.getElementById('defaultProfileSelect').value, 10);
+  miscConfig.defPalette = parseInt(document.getElementById('defaultPaletteSelect').value, 10);
+  // miscConfig.useProfile is updated via onchange in index.html
 
   if (usbDevice) {
-    await sendCmd(`SAV_MSC:${miscConfig.freq},${miscConfig.duty},${miscConfig.defProfile}\n`);
+    await sendCmd(`SAV_MSC:${miscConfig.freq},${miscConfig.duty},${miscConfig.defProfile},${miscConfig.defPalette},${miscConfig.useProfile}\n`);
     await sendCmd("COMMIT_EEPROM\n");
   }
 }
