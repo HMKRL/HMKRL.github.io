@@ -407,30 +407,31 @@ function parseIncomingData(data) {
   logDebug(data, "RX");
 
   if (data.startsWith("PAL:")) {
-    // Parse Palette
-    const items = data.substring(4).split('|');
-    items.forEach((item, i) => {
+    // Parse Palette (Line by Line) Format: PAL:idx,hex,name,isDef
+    const parts = data.substring(4).split(',');
+    if (parts.length >= 4) {
+      const i = parseInt(parts[0], 10);
       if (i >= NUM_PALETTE) return;
-      const [hex, name, isDef] = item.split(',');
-      if (hex) {
-        palettes[i] = {
-          hex: hex,
-          name: name ? name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12) : '',
-          isDefined: parseInt(isDef || 0)
-        };
+      const hex = parts[1];
+      const name = parts[2];
+      const isDef = parts[3];
 
-        const colorEl = document.getElementById(`palColor${i}`);
-        if (colorEl) {
-          colorEl.value = `#${hex}`;
-          const hexEl = document.getElementById(`palHex${i}`);
-          if (hexEl) hexEl.value = `#${hex}`;
-          document.getElementById(`palName${i}`).value = palettes[i].name;
-          document.getElementById(`palDef${i}`).checked = palettes[i].isDefined === 1;
-          togglePalette(i); // Update visuals
-        }
+      palettes[i] = {
+        hex: hex,
+        name: name ? name.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 12) : '',
+        isDefined: parseInt(isDef || 0, 10)
+      };
+
+      const colorEl = document.getElementById(`palColor${i}`);
+      if (colorEl) {
+        colorEl.value = `#${hex}`;
+        const hexEl = document.getElementById(`palHex${i}`);
+        if (hexEl) hexEl.value = `#${hex}`;
+        document.getElementById(`palName${i}`).value = palettes[i].name;
+        document.getElementById(`palDef${i}`).checked = palettes[i].isDefined === 1;
+        togglePalette(i); // Update visuals
       }
-    });
-    updateProfileColorSelectors();
+    }
   }
   else if (data.startsWith("PRF:")) {
     // Parse Profile PRF:pIdx:isDef:name:groups|colors
@@ -522,27 +523,20 @@ async function saveMisc() {
 
 let isStrobePreviewing = false;
 
-async function toggleStrobePreview() {
-  isStrobePreviewing = !isStrobePreviewing;
-  const btn = document.getElementById('strobePreviewBtn');
-
-  if (isStrobePreviewing) {
-    btn.innerHTML = '停止閃爍';
-    btn.classList.replace('bg-yellow-400', 'bg-red-500');
-    btn.classList.replace('hover:bg-yellow-500', 'hover:bg-red-600');
-    btn.classList.replace('text-yellow-900', 'text-white');
-  } else {
-    btn.innerHTML = '預覽閃爍';
-    btn.classList.replace('bg-red-500', 'bg-yellow-400');
-    btn.classList.replace('hover:bg-red-600', 'hover:bg-yellow-500');
-    btn.classList.replace('text-white', 'text-yellow-900');
-  }
+async function previewStrobe(state) {
+  const isPreviewing = (state === 1);
+  if (isStrobePreviewing === isPreviewing) return;
+  isStrobePreviewing = isPreviewing;
 
   if (usbDevice) {
-    const f = document.getElementById('strobeFreq').value;
-    const d = document.getElementById('strobeDuty').value;
-    const p = document.getElementById('defaultProfileSelect').value;
-    await sendCmd(`SAV_MSC:${f},${d},${p}\n`);
+    if (isStrobePreviewing) {
+      const f = document.getElementById('strobeFreq').value;
+      const d = document.getElementById('strobeDuty').value;
+      const p = document.getElementById('defaultProfileSelect').value;
+      const pal = document.getElementById('defaultPaletteSelect').value || 0;
+      const useProf = document.getElementById('defaultModeSelect').value;
+      await sendCmd(`SAV_MSC:${f},${d},${p},${pal},${useProf}\n`);
+    }
     await sendCmd(`PRV_STR:${isStrobePreviewing ? 1 : 0}\n`);
   }
 }
@@ -552,7 +546,9 @@ async function onStrobeSliderChange() {
     const f = document.getElementById('strobeFreq').value;
     const d = document.getElementById('strobeDuty').value;
     const p = document.getElementById('defaultProfileSelect').value;
-    await sendCmd(`SAV_MSC:${f},${d},${p}\n`);
+    const pal = document.getElementById('defaultPaletteSelect').value || 0;
+    const useProf = document.getElementById('defaultModeSelect').value;
+    await sendCmd(`SAV_MSC:${f},${d},${p},${pal},${useProf}\n`);
   }
 }
 
